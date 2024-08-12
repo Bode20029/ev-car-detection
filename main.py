@@ -1,6 +1,6 @@
 import cv2
 import time
-from object_detection import process_frame
+from car_detection import process_frame
 from bluetooth_connection import find_bluetooth_speaker, connect_to_speaker
 from text_to_speech import text_to_speech
 from audio_playback import play_audio
