@@ -1,6 +1,7 @@
 import serial
 import struct
 import time
+import binascii
 
 # Initialize the serial connection to the PZEM-004T
 # Replace '/dev/ttyUSB0' with the appropriate port on your Jetson Nano
@@ -17,21 +18,30 @@ def read_pzem(serial_connection):
     # Read the response from the PZEM-004T
     response = serial_connection.read(25)
 
+    # Print debugging information
+    print(f"Response length: {len(response)}")
+    print(f"Response hex: {binascii.hexlify(response)}")
+
     # Check if the response length is as expected
     if len(response) == 25:
-        # Unpack the data from the response
-        data = struct.unpack('>HBBH', response[1:])
-        
-        voltage = data[0] / 10.0  # Voltage in Volts
-        current = (data[1] << 8 | data[2]) / 100.0  # Current in Amperes
-        power = data[3] / 10.0  # Power in Watts
-        
-        return {
-            'voltage': voltage,
-            'current': current,
-            'power': power
-        }
+        try:
+            # Unpack the data from the response
+            data = struct.unpack('>HHHHHHHHHH', response[3:-2])
+            
+            voltage = data[0] / 10.0  # Voltage in Volts
+            current = data[1] / 1000.0  # Current in Amperes
+            power = data[2] / 10.0  # Power in Watts
+            
+            return {
+                'voltage': voltage,
+                'current': current,
+                'power': power
+            }
+        except struct.error as e:
+            print(f"Struct error: {e}")
+            return None
     else:
+        print(f"Unexpected response length: {len(response)}")
         return None
 
 def main():
