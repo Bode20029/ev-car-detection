@@ -3,7 +3,7 @@ import time
 
 # Configure the serial port
 ser = serial.Serial(
-    port='/dev/ttyTHS1',  # This may vary depending on your Jetson Nano setup
+    port='/dev/ttyUSB0',  # This may vary depending on your Jetson Nano setup
     baudrate=9600,
     bytesize=serial.EIGHTBITS,
     parity=serial.PARITY_NONE,
@@ -61,3 +61,6 @@ except KeyboardInterrupt:
 finally:
     ser.close()
     print("Serial port closed")
+
+if __name__ == '__main__':
+    main()
