@@ -16,6 +16,6 @@ def play_audio(file_paths):
 script_dir = os.path.dirname(os.path.abspath(__file__))
 audio_files = [
     os.path.join(script_dir, "alert.mp3"),
-    os.path.join(script_dir, "warning.mp3")
+    os.path.join(script_dir, "Warning.mp3")
 ]
 play_audio(audio_files)
