@@ -29,7 +29,7 @@ class SensorManager:
         self.data_queue = Queue()
         
         # Load YOLOv8 model
-        self.model = YOLO('yolov8n.pt')  # or your custom trained model
+        self.model = YOLO('yolov9s_ev.pt')  # or your custom trained model
         
         # Set up GPIO for HC-SR04P
         GPIO_setup()
