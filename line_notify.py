@@ -1,8 +1,11 @@
 import requests
+import os
 
 class LineNotifier:
-    def __init__(self, token):
-        self.token = "J0oQ74OftbCNdiPCCfV4gs75aqtz4aAL8NiGfHERvZ4"
+    def __init__(self):
+        self.token = os.environ.get('LINE_NOTIFY_TOKEN')
+        if not self.token:
+            raise ValueError("LINE_NOTIFY_TOKEN environment variable is not set")
         self.api_url = 'https://notify-api.line.me/api/notify'
 
     def send_notification(self, message):

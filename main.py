@@ -5,6 +5,9 @@ import cv2
 from ultralytics import YOLO
 import logging
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Import sensor functionalities
 from hc_sr04p_distance import get_distance, GPIO_setup, GPIO_cleanup
