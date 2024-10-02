@@ -3,7 +3,6 @@ import threading
 from queue import Queue
 import logging
 import os
-from playsound import playsound
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,7 +31,9 @@ class SensorManager:
         GPIO_setup()
         
         # Set up PZEM
+        logger.info("Initializing PZEM sensor...")
         self.pzem_master = connect_to_sensor()
+        logger.info("PZEM sensor initialized")
 
         # Set up LINE Notifier
         self.line_notifier = LineNotifier(LINE_NOTIFY_TOKEN)
@@ -43,10 +44,14 @@ class SensorManager:
     def pzem_thread(self):
         while True:
             try:
+                logger.info("Attempting to read PZEM data...")
                 pzem_data = read_sensor_data(self.pzem_master)
-                self.data_queue.put(('pzem', pzem_data['current_A']))
+                current = pzem_data['current_A']
+                logger.info(f"PZEM data read successfully. Current: {current:.2f} A")
+                self.data_queue.put(('pzem', current))
             except Exception as e:
                 logger.error(f"Error reading PZEM data: {e}")
+                logger.info("Attempting to reconnect to PZEM...")
                 self.pzem_master = connect_to_sensor()  # Reconnect
             time.sleep(5)
 
@@ -54,36 +59,38 @@ class SensorManager:
         while True:
             distance = get_distance()
             if distance is not None:
+                logger.info(f"Distance read: {distance:.2f} cm")
                 self.data_queue.put(('distance', distance))
+            else:
+                logger.warning("Failed to read distance")
             time.sleep(5)
 
     def process_data(self):
         while True:
-            sensor1, data1 = self.data_queue.get()
-            sensor2, data2 = self.data_queue.get()
-            
-            if sensor1 == 'pzem' and sensor2 == 'distance':
-                current, distance = data1, data2
-            elif sensor1 == 'distance' and sensor2 == 'pzem':
-                distance, current = data1, data2
-            else:
-                continue
+            try:
+                sensor1, data1 = self.data_queue.get(timeout=10)  # 10 second timeout
+                sensor2, data2 = self.data_queue.get(timeout=10)  # 10 second timeout
+                
+                if sensor1 == 'pzem' and sensor2 == 'distance':
+                    current, distance = data1, data2
+                elif sensor1 == 'distance' and sensor2 == 'pzem':
+                    distance, current = data1, data2
+                else:
+                    logger.warning(f"Unexpected sensor data: {sensor1}, {sensor2}")
+                    continue
 
-            print(f"{current:.2f} {distance:.2f}")
+                logger.info(f"Processing data - Current: {current:.2f} A, Distance: {distance:.2f} cm")
 
-            if current > CURRENT_THRESHOLD and distance < DISTANCE_THRESHOLD:
-                if not self.alert_active:
-                    self.alert_active = True
-                    message = "Alert: Current > 0.05A and Distance < 20cm"
-                    logger.info(message)
-                    self.line_notifier.send_notification(message)
-                    threading.Thread(target=self.play_alert).start()
-            else:
-                self.alert_active = False
-
-    def play_alert(self):
-        while self.alert_active:
-            playsound('alert.mp3')
+                if current > CURRENT_THRESHOLD and distance < DISTANCE_THRESHOLD:
+                    if not self.alert_active:
+                        self.alert_active = True
+                        message = f"Alert: Current ({current:.2f} A) > {CURRENT_THRESHOLD} A and Distance ({distance:.2f} cm) < {DISTANCE_THRESHOLD} cm"
+                        logger.info(message)
+                        self.line_notifier.send_notification(message)
+                else:
+                    self.alert_active = False
+            except Queue.Empty:
+                logger.warning("Timeout waiting for sensor data")
 
     def run(self):
         threads = [
